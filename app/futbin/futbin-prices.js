@@ -1,3 +1,4 @@
+/* eslint-disable linebreak-style */
 /* globals
 $
 window
@@ -110,6 +111,7 @@ export class FutbinPrices extends BaseScript {
         }
 
         const showBargains = (this.getSettings()['show-bargains'] === 'true');
+        const minProfit = this.getSettings()['min-profit'];
 
         const resourceIdMapping = [];
         listrows.forEach((row, index) => {
@@ -125,14 +127,14 @@ export class FutbinPrices extends BaseScript {
             .map(i => i.playerId)
             .filter((current, next) => current !== next)
             .join(',')
-        }`;
+          }`;
         GM_xmlhttpRequest({
           method: 'GET',
           url: futbinUrl,
           onload: (res) => {
             const futbinData = JSON.parse(res.response);
             resourceIdMapping.forEach((item) => {
-              FutbinPrices._showFutbinPrice(item, futbinData, showBargains);
+              FutbinPrices._showFutbinPrice(item, futbinData, showBargains, minProfit);
             });
           },
         });
@@ -147,7 +149,7 @@ export class FutbinPrices extends BaseScript {
     }
   }
 
-  static async _showFutbinPrice(item, futbinData, showBargain) {
+  static async _showFutbinPrice(item, futbinData, showBargain, minProfit) {
     if (!futbinData) {
       return;
     }
@@ -168,8 +170,23 @@ export class FutbinPrices extends BaseScript {
     let targetForButton = null;
 
     if (showBargain) {
-      if (item.item._auction.buyNowPrice < futbinData[playerId].prices[platform].LCPrice) {
-        target.addClass('futbin-bargain');
+      const prices = [];
+      prices.push(+futbinData[playerId].prices[platform].LCPrice.replace(',', ''));
+      prices.push(+futbinData[playerId].prices[platform].LCPrice2.replace(',', ''));
+      prices.push(+futbinData[playerId].prices[platform].LCPrice3.replace(',', ''));
+      prices.push(+futbinData[playerId].prices[platform].LCPrice4.replace(',', ''));
+      prices.push(+futbinData[playerId].prices[platform].LCPrice5.replace(',', ''));
+      const updated = futbinData[playerId].prices[platform].updated.split(' ');
+      let averagePrice = 0;
+      if (updated[1] === 'mins') {
+        const filteredPrices = prices
+          .filter(p => p > 0)
+          .reduce((acc, cur) => acc + cur, 0);
+        averagePrice = filteredPrices / prices.filter(p => p > 0).length;
+        const price = futbinData[playerId].prices[platform].LCPrice;
+        if ((averagePrice > 0) ? (averagePrice > minProfit) : (price > minProfit)) {
+          target.addClass('futbin-bargain');
+        }
       }
     }
 
@@ -204,7 +221,7 @@ export class FutbinPrices extends BaseScript {
         </div>`);
         break;
       default:
-        // no need to do anything
+      // no need to do anything
     }
   }
 }
