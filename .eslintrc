@@ -4,7 +4,8 @@
   "rules": {
     "func-names": ["error", "never"],
     "import/prefer-default-export": "off",
-    "no-underscore-dangle": "off"
+    "no-underscore-dangle": "off",
+    "prefer-destructuring": ["error", {"object": false, "array": false}]
   },
   "globals": {
     "UA_TOKEN": false,

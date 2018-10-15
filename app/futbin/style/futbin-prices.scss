@@ -43,8 +43,17 @@
   -webkit-filter: hue-rotate(165deg);
   filter: hue-rotate(165deg);
 }
-.listFUTItem.has-auction-data.futbin-bargain .rowContent {
-  background-color: #7ffe9445;
+.listFUTItem.has-auction-data.futbin-bargain1 .rowContent {
+  background-color: #7ffe94;
+}
+.listFUTItem.has-auction-data.futbin-bargain2 .rowContent {
+  background-color: #95f9a8;
+}
+.listFUTItem.has-auction-data.futbin-bargain3 .rowContent {
+  background-color: #a9f9b7;
+}
+.listFUTItem.has-auction-data.futbin-bargain4 .rowContent {
+  background-color: #ccfcd4;
 }
 .listFUTItem.has-auction-data.selected.futbin-bargain .rowContent, .listFUTItem.has-auction-data.selected.futbin-bargain .rowContent.active {
   background-color: #7ffe94;

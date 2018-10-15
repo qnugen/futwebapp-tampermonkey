@@ -127,7 +127,7 @@ export class FutbinPrices extends BaseScript {
             .map(i => i.playerId)
             .filter((current, next) => current !== next)
             .join(',')
-          }`;
+        }`;
         GM_xmlhttpRequest({
           method: 'GET',
           url: futbinUrl,
@@ -149,7 +149,72 @@ export class FutbinPrices extends BaseScript {
     }
   }
 
-  static async _showFutbinPrice(item, futbinData, showBargain, minProfit) {
+  static getColor(item, futbinData) {
+    const { playerId } = item;
+    const type = (item.item.rating < 75) ? 'silver' : 'gold';
+    const platform = utils.getPlatform();
+
+    const prices = [];
+    prices.push(+futbinData[playerId].prices[platform].LCPrice.replace(',', ''));
+    prices.push(+futbinData[playerId].prices[platform].LCPrice2.replace(',', ''));
+    prices.push(+futbinData[playerId].prices[platform].LCPrice3.replace(',', ''));
+    prices.push(+futbinData[playerId].prices[platform].LCPrice4.replace(',', ''));
+    prices.push(+futbinData[playerId].prices[platform].LCPrice5.replace(',', ''));
+    const updated = futbinData[playerId].prices[platform].updated.split(' ');
+    let averagePrice = 0;
+    if (updated[1] === 'mins') {
+      const filteredPrices = prices
+        .filter(p => p > 0)
+        .reduce((acc, cur) => acc + cur, 0);
+      averagePrice = filteredPrices / prices.filter(p => p > 0).length;
+      const price = averagePrice || futbinData[playerId].prices[platform].LCPrice;
+
+      const bid = (item.item._auction.currentBid > 0)
+        ? item.item._auction.currentBid
+        : item.item._auction.startingBid;
+      const compareValue = price / bid;
+      const averageValue = averagePrice - bid;
+
+      const color = FutbinPrices.calcCompareValue(type, compareValue, averageValue);
+
+      console.log(playerId, price, bid, compareValue, color);
+
+      return color;
+    }
+
+    return undefined;
+  }
+
+  static calcCompareValue(type, compareValue, averageValue) {
+    const ranks = [
+      { code: 'futbin-bargain1', factor: 11, value: 11000 },
+      { code: 'futbin-bargain2', factor: 7, value: 7000 },
+      { code: 'futbin-bargain3', factor: 5, value: 3000 },
+      { code: 'futbin-bargain4', factor: 3, value: 1000 },
+    ];
+
+    if (type === 'silver') {
+      for (let i = 0; i < ranks.length - 1; i += 1) {
+        const { code, factor } = ranks[i];
+        if (compareValue > factor) {
+          return code;
+        }
+      }
+    }
+
+    if (type === 'gold') {
+      for (let i = 0; i < ranks.length; i += 1) {
+        const { code, value } = ranks[i];
+        if (averageValue > value) {
+          return code;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  static async _showFutbinPrice(item, futbinData, showBargain) {
     if (!futbinData) {
       return;
     }
@@ -170,24 +235,9 @@ export class FutbinPrices extends BaseScript {
     let targetForButton = null;
 
     if (showBargain) {
-      const prices = [];
-      prices.push(+futbinData[playerId].prices[platform].LCPrice.replace(',', ''));
-      prices.push(+futbinData[playerId].prices[platform].LCPrice2.replace(',', ''));
-      prices.push(+futbinData[playerId].prices[platform].LCPrice3.replace(',', ''));
-      prices.push(+futbinData[playerId].prices[platform].LCPrice4.replace(',', ''));
-      prices.push(+futbinData[playerId].prices[platform].LCPrice5.replace(',', ''));
-      const updated = futbinData[playerId].prices[platform].updated.split(' ');
-      let averagePrice = 0;
-      if (updated[1] === 'mins') {
-        const filteredPrices = prices
-          .filter(p => p > 0)
-          .reduce((acc, cur) => acc + cur, 0);
-        averagePrice = filteredPrices / prices.filter(p => p > 0).length;
-        const price = futbinData[playerId].prices[platform].LCPrice;
-        if ((averagePrice > 0) ? (averagePrice > minProfit) : (price > minProfit)) {
-          target.addClass('futbin-bargain');
-        }
-      }
+      const color = FutbinPrices.getColor(item, futbinData);
+      const colorClass = `${color}`;
+      target.addClass(colorClass);
     }
 
     if (target.find('.futbin').length > 0) {
