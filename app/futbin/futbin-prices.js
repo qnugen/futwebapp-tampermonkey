@@ -136,6 +136,7 @@ export class FutbinPrices extends BaseScript {
             resourceIdMapping.forEach((item) => {
               FutbinPrices._showFutbinPrice(item, futbinData, showBargains, minProfit);
             });
+            console.log('======');
           },
         });
       }, 1000);
@@ -154,30 +155,24 @@ export class FutbinPrices extends BaseScript {
     const type = (item.item.rating < 75) ? 'silver' : 'gold';
     const platform = utils.getPlatform();
 
-    const prices = [];
-    prices.push(+futbinData[playerId].prices[platform].LCPrice.replace(',', ''));
-    prices.push(+futbinData[playerId].prices[platform].LCPrice2.replace(',', ''));
-    prices.push(+futbinData[playerId].prices[platform].LCPrice3.replace(',', ''));
-    prices.push(+futbinData[playerId].prices[platform].LCPrice4.replace(',', ''));
-    prices.push(+futbinData[playerId].prices[platform].LCPrice5.replace(',', ''));
     const updated = futbinData[playerId].prices[platform].updated.split(' ');
-    let averagePrice = 0;
     if (updated[1] === 'mins') {
-      const filteredPrices = prices
-        .filter(p => p > 0)
-        .reduce((acc, cur) => acc + cur, 0);
-      averagePrice = filteredPrices / prices.filter(p => p > 0).length;
-      const price = averagePrice || futbinData[playerId].prices[platform].LCPrice;
+      const price = +futbinData[playerId].prices[platform].LCPrice.replace(',', '');
 
       const bid = (item.item._auction.currentBid > 0)
         ? item.item._auction.currentBid
         : item.item._auction.startingBid;
-      const compareValue = price / bid;
-      const averageValue = averagePrice - bid;
+
+      const profit = (+futbinData[playerId].prices[platform].LCPrice.replace(',', '') - bid) * 0.95;
+
+      const compareValue = profit / bid;
+      const averageValue = profit - bid;
 
       const color = FutbinPrices.calcCompareValue(type, compareValue, averageValue);
 
-      console.log(playerId, price, bid, compareValue, color);
+      if (color) {
+        console.log(playerId, price, bid, compareValue, color);
+      }
 
       return color;
     }
@@ -218,15 +213,18 @@ export class FutbinPrices extends BaseScript {
     if (!futbinData) {
       return;
     }
+    const platform = utils.getPlatform();
     const target = $(item.target);
     const { playerId } = item;
+    const bid = (item.item._auction.currentBid > 0)
+      ? item.item._auction.currentBid
+      : item.item._auction.startingBid;
+    const profit = (+futbinData[playerId].prices[platform].LCPrice.replace(',', '') - bid) * 0.95;
 
     if (target.find('.player').length === 0) {
       // not a player
       return;
     }
-
-    const platform = utils.getPlatform();
 
     if (!futbinData[playerId]) {
       return; // futbin data might not be available for this player
@@ -244,7 +242,12 @@ export class FutbinPrices extends BaseScript {
       return; // futbin price already added to the row
     }
 
+    if (target.find('.profit').length > 0) {
+      return; // futbin price already added to the row
+    }
+
     const futbinText = 'Futbin BIN';
+    const profitText = 'Profit';
     switch (window.currentPage) {
       case 'UTTransferListSplitViewController':
       case 'UTWatchListSplitViewController':
@@ -259,6 +262,8 @@ export class FutbinPrices extends BaseScript {
           <span class="label">${futbinText}</span>
           <span class="coins value">${futbinData[playerId].prices[platform].LCPrice}</span>
           <span class="time" style="color: #acacc4;">${futbinData[playerId].prices[platform].updated}</span>
+          <span class="label">${profitText}</span>
+          <span class="coins value">${profit}</span>
         </div>`);
         break;
       case 'SearchResults':
@@ -268,6 +273,8 @@ export class FutbinPrices extends BaseScript {
           <span class="label">${futbinText}</span>
           <span class="coins value">${futbinData[playerId].prices[platform].LCPrice}</span>
           <span class="time" style="color: #acacc4;">${futbinData[playerId].prices[platform].updated}</span>
+          <span class="label">${profitText}</span>
+          <span class="coins value">${profit}</span>
         </div>`);
         break;
       default:
