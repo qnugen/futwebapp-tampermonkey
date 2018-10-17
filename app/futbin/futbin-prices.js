@@ -156,7 +156,7 @@ export class FutbinPrices extends BaseScript {
     const platform = utils.getPlatform();
 
     const updated = futbinData[playerId].prices[platform].updated.split(' ');
-    if (updated[1] === 'mins') {
+    if ((updated[1] === 'mins') || (updated[1] === 'hour')) {
       const price = +futbinData[playerId].prices[platform].LCPrice.replace(',', '');
 
       const bid = (item.item._auction.currentBid > 0)
