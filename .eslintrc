@@ -5,7 +5,8 @@
     "func-names": ["error", "never"],
     "import/prefer-default-export": "off",
     "no-underscore-dangle": "off",
-    "prefer-destructuring": ["error", {"object": false, "array": false}]
+    "prefer-destructuring": ["error", {"object": false, "array": false}],
+    "linebreak-style": 0
   },
   "globals": {
     "UA_TOKEN": false,
