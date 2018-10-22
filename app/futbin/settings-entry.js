@@ -7,6 +7,6 @@ export class FutbinSettings extends SettingsEntry {
 
     this.addSetting('Show link to player page', 'show-link-to-player', 'false');
     this.addSetting('Mark bargains', 'show-bargains', 'false');
-    this.addSetting('Minimum profit', 'min-profit', 500);
+    this.addSetting('Filter profit', 'filter-profit', 'true');
   }
 }

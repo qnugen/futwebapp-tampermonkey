@@ -111,7 +111,6 @@ export class FutbinPrices extends BaseScript {
         }
 
         const showBargains = (this.getSettings()['show-bargains'] === 'true');
-        const minProfit = this.getSettings()['min-profit'];
 
         const resourceIdMapping = [];
         listrows.forEach((row, index) => {
@@ -134,7 +133,7 @@ export class FutbinPrices extends BaseScript {
           onload: (res) => {
             const futbinData = JSON.parse(res.response);
             resourceIdMapping.forEach((item) => {
-              FutbinPrices._showFutbinPrice(item, futbinData, showBargains, minProfit);
+              FutbinPrices._showFutbinPrice(item, futbinData, showBargains);
             });
             console.log('======');
           },
@@ -155,20 +154,39 @@ export class FutbinPrices extends BaseScript {
     const type = (item.item.rating < 75) ? 'silver' : 'gold';
     const platform = utils.getPlatform();
 
+    const hour = new Date().getHours();
+
     const updated = futbinData[playerId].prices[platform].updated.split(' ');
-    if ((updated[1] === 'mins') || (updated[1] === 'hour')) {
-      const price = +futbinData[playerId].prices[platform].LCPrice.replace(',', '');
+    if ((updated[1] === 'mins') || ((updated[1] === 'hour') || (updated[1] === 'hours' && (+updated[0] <= ((hour) <= 8 ? 16 : 3))))) {
+      let price = 0;
+      if (hour <= 8) {
+        const prices = [];
+        prices.push(+futbinData[playerId].prices[platform].LCPrice.replace(',', ''));
+        prices.push(+futbinData[playerId].prices[platform].LCPrice2.replace(',', ''));
+        prices.push(+futbinData[playerId].prices[platform].LCPrice3.replace(',', ''));
+        prices.push(+futbinData[playerId].prices[platform].LCPrice4.replace(',', ''));
+        prices.push(+futbinData[playerId].prices[platform].LCPrice5.replace(',', ''));
+        const filteredPrices = prices
+          .filter(p => p > 0)
+          .reduce((acc, cur) => acc + cur, 0);
+        price = filteredPrices / prices.filter(p => p > 0).length;
+      } else {
+        price = +futbinData[playerId].prices[platform].LCPrice.replace(',', '');
+      }
 
       const bid = (item.item._auction.currentBid > 0)
         ? item.item._auction.currentBid
         : item.item._auction.startingBid;
 
+      const bin = item.item._auction.currentBin;
+
       const profit = (+futbinData[playerId].prices[platform].LCPrice.replace(',', '') - bid) * 0.95;
 
       const compareValue = profit / bid;
-      const averageValue = profit - bid;
+      const bidValue = profit - bid;
+      const binValue = profit - bin;
 
-      const color = FutbinPrices.calcCompareValue(type, compareValue, averageValue);
+      const color = FutbinPrices.calcCompareValue(type, compareValue, bidValue, binValue);
 
       if (color) {
         console.log(playerId, price, bid, compareValue, color);
@@ -180,12 +198,12 @@ export class FutbinPrices extends BaseScript {
     return undefined;
   }
 
-  static calcCompareValue(type, compareValue, averageValue) {
+  static calcCompareValue(type, compareValue, bidValue, binValue) {
     const ranks = [
       { code: 'futbin-bargain1', factor: 11, value: 11000 },
       { code: 'futbin-bargain2', factor: 7, value: 7000 },
       { code: 'futbin-bargain3', factor: 5, value: 3000 },
-      { code: 'futbin-bargain4', factor: 3, value: 1000 },
+      { code: 'futbin-bargain4', factor: 2, value: 1000 },
     ];
 
     if (type === 'silver') {
@@ -200,7 +218,12 @@ export class FutbinPrices extends BaseScript {
     if (type === 'gold') {
       for (let i = 0; i < ranks.length; i += 1) {
         const { code, value } = ranks[i];
-        if (averageValue > value) {
+
+        if (binValue > value) {
+          return `${code}_bin`;
+        }
+
+        if (bidValue > value) {
           return code;
         }
       }
@@ -209,7 +232,7 @@ export class FutbinPrices extends BaseScript {
     return undefined;
   }
 
-  static async _showFutbinPrice(item, futbinData, showBargain) {
+  static async _showFutbinPrice(item, futbinData, showBargains) {
     if (!futbinData) {
       return;
     }
@@ -231,9 +254,10 @@ export class FutbinPrices extends BaseScript {
     }
 
     let targetForButton = null;
+    let color = null;
 
-    if (showBargain) {
-      const color = FutbinPrices.getColor(item, futbinData);
+    if (showBargains) {
+      color = FutbinPrices.getColor(item, futbinData);
       const colorClass = `${color}`;
       target.addClass(colorClass);
     }
